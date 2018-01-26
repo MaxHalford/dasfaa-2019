@@ -1,0 +1,6 @@
+*.egg-info
+*.pyc
+build/
+.ipynb_checkpoints
+data/*
+*.db
