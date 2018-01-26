@@ -9,7 +9,7 @@
 cd path/to/phd
 
 # Setup Python virtual environment
-conda create -n phd python=3.5
+conda create -n phd python=3.6
 source activate phd # drop the "source" if you are on Windows
 
 # Install Python libraries
@@ -24,7 +24,7 @@ python imdbpy/bin/imdbpy2sql.py -d data/imdb -u URI # takes a butload of time
 python cli.py runimdb URI
 ```
 
-`URI` has to be a valid database string, such as `sqlite:///imdb.db` or `postgresql://user:password@localhost:5432/imdb`.
+`URI` has to be a valid database string, such as `postgresql://user:password@localhost:5432/imdb`.
 
 ## Papers
 

@@ -51,7 +51,12 @@ def runimdb(uri):
 
     # Connect to the database
     engine = sqlalchemy.create_engine(uri)
-    conn = engine.connect()
+
+    # Retrieve the metadata
+    metadata = tools.retrieve_metadata(engine)
+    print(metadata.sorted_tables)
+
+    return
 
     # Load the JOB queries
     queries = [
