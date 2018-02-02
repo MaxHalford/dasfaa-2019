@@ -47,16 +47,22 @@ def dlimdb():
 
 @cli.command()
 @click.argument('uri', default=URI)
+def buildstats(uri):
+
+    # Connect to the database
+    engine = sqlalchemy.create_engine(uri)
+    conn = engine.connect()
+
+    # Build statistics
+    conn.execute('ANALYZE')
+
+
+@cli.command()
+@click.argument('uri', default=URI)
 def runimdb(uri):
 
     # Connect to the database
     engine = sqlalchemy.create_engine(uri)
-
-    # Retrieve the metadata
-    metadata = tools.retrieve_metadata(engine)
-    print(metadata.sorted_tables)
-
-    return
 
     # Load the JOB queries
     queries = [
@@ -67,9 +73,9 @@ def runimdb(uri):
 
     # Run the queries one by one
     for query in queries[:1]:
-        plan = tools.explain_query(query, conn)
-        print(plan)
-    conn.close()
+        plan = tools.explain_query(query, engine)
+        print(query)
+        tools.print_json(plan)
 
 
 if __name__ == '__main__':

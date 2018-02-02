@@ -1,19 +1,33 @@
-from . import dag
+import itertools
+
+import networkx as nx
+from typing import List
+
+import pandas as pd
+
+from . import bayes_net
 from . import dependence
 
 
-def build_chow_liu_tree_from_table(df):
+def chow_liu_tree_from_df(df: pd.DataFrame, blacklist: List[str]) -> bayes_net.BayesNet:
 
     # Calculate the pairwise mutual informations scores
-    mut_infos = []
-    for i, col_x in enumerate(df.columns):
-        for col_y in df.columns[i:]:
-            print(col_x, col_y)
+    mut_infos = [
+        (a, b, dependence.mutual_info(df[a], df[b]))
+        for (a, b) in itertools.combinations(set(df.columns) - set(blacklist), 2)
+    ]
 
-    # Initialise the list of dependencies
-    dependencies = []
+    # Create a graph that contains all the mutual informations
+    mut_info_graph = nx.Graph()
+    mut_info_graph.add_weighted_edges_from(mut_infos)
 
-    # Initalise a DAG with the obtained dependencies
-    tree = dag.DAG(dependencies=dependencies)
+    # Determine the maximum spanning tree
+    edges = nx.algorithms.tree.mst.maximum_spanning_edges(mut_info_graph)
+    tree = nx.Graph()
+    tree.add_edges_from(edges)
+    tree = nx.bfs_tree(tree, list(tree.nodes)[0])
 
-    return tree
+    # Initialise the Bayesian network
+    bn = bayes_net.BayesNet(edges=list(tree.edges))
+
+    return bn

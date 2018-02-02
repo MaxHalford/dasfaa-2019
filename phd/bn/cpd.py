@@ -1,21 +1,24 @@
 import pandas as pd
 
 
-class CPD(pd.DataFrame):
+class CPD(pd.Series):
 
-    def __init__(self, df, on, by, relative=True):
+    def __init__(self, df, on, by):
 
         # Make sure by is a list
-        by = by if isinstance(by, list) else [by]
+        by = [] if by is None else by
+        by = [by] if not isinstance(by, list) else by
 
-        counts = df.groupby([on] + by).size().to_frame('count').reset_index()
-        cpd = pd.pivot_table(data=counts, index=by, columns=on, values='count').fillna(0)
+        if by:
+            counts = df.groupby(by).apply(lambda g: g.groupby(on).size() / len(g))
+        else:
+            counts = df.groupby(on).size() / len(df)
 
-        if relative:
-            cpd = cpd.div(cpd.sum(axis='columns'), axis='rows')
+        super().__init__(data=counts)
 
-        super().__init__(data=cdp)
+        self.on = on
+        self.by = by
 
     @property
     def _constructor(self):
-        return CPD
+        return pd.Series

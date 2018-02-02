@@ -17,10 +17,12 @@ cd imdbpy
 python setup.py install
 cd ..
 pip install -r requirements.txt
+conda install pygraphviz
 
 # Populate IMDB database
 python cli.py dlimdb
 python imdbpy/bin/imdbpy2sql.py -d data/imdb -u URI # takes a butload of time
+python cli.py buildstats URI
 python cli.py runimdb URI
 ```
 
