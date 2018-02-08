@@ -78,5 +78,14 @@ def runimdb(uri):
         tools.print_json(plan)
 
 
+@cli.command()
+@click.argument('uri', default=URI)
+def rmdb(uri):
+    """Tread lightly."""
+    engine = sqlalchemy.create_engine(uri)
+    metadata = tools.get_metadata(engine)
+    metadata.drop_all()
+
+
 if __name__ == '__main__':
     cli()

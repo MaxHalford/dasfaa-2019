@@ -1,9 +1,11 @@
 import json
 
+import pandas as pd
 import sqlalchemy
 
 
 def print_json(d, indent=4, sort_keys=True):
+    """Pretty prints a dictionary."""
     print(json.dumps(d, indent=indent, sort_keys=sort_keys))
 
 
@@ -24,8 +26,8 @@ def explain_query(query, engine):
     return plan
 
 
-def retrieve_metadata(engine):
+def get_metadata(engine):
     """Returns metadata from a database given a database URI."""
-    metadata = sqlalchemy.MetaData()
+    metadata = sqlalchemy.MetaData(bind=engine)
     metadata.reflect(bind=engine)
     return metadata

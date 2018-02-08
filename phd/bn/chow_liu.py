@@ -1,8 +1,7 @@
 import itertools
-
-import networkx as nx
 from typing import List
 
+import networkx as nx
 import pandas as pd
 
 from . import bayes_net
@@ -11,10 +10,14 @@ from . import dependence
 
 def chow_liu_tree_from_df(df: pd.DataFrame, blacklist: List[str]) -> bayes_net.BayesNet:
 
+    attributes = set(df.columns) - set(blacklist)
+    if len(attributes) == 1:
+        return bayes_net.BayesNet(nodes=attributes)
+
     # Calculate the pairwise mutual informations scores
     mut_infos = [
         (a, b, dependence.mutual_info(df[a], df[b]))
-        for (a, b) in itertools.combinations(set(df.columns) - set(blacklist), 2)
+        for (a, b) in itertools.combinations(attributes, 2)
     ]
 
     # Create a graph that contains all the mutual informations
