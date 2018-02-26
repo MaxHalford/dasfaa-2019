@@ -10,6 +10,7 @@ from . import dependence
 
 def chow_liu_tree_from_df(df: pd.DataFrame, blacklist: List[str]) -> bayes_net.BayesNet:
 
+    # Ignore columns that are part of the blacklist
     attributes = set(df.columns) - set(blacklist)
     if len(attributes) == 1:
         return bayes_net.BayesNet(nodes=attributes)

@@ -31,3 +31,43 @@ def get_metadata(engine):
     metadata = sqlalchemy.MetaData(bind=engine)
     metadata.reflect(bind=engine)
     return metadata
+
+
+def categorical_qcut(series, q):
+    """Computes categorical quantiles of a pandas.Series objects."""
+    bin_freq = 1 / q
+    value_counts = series.value_counts(normalize=True).sort_index()
+    bins = {}
+
+    values_in_bin = []
+    cum_freq = 0
+
+    for val, freq in value_counts.iteritems():
+
+        values_in_bin.append(val)
+        cum_freq += freq
+
+        if cum_freq >= bin_freq:
+            values_in_bin = sorted(values_in_bin)
+            interval = pd.Interval(left=values_in_bin[0], right=values_in_bin[-1], closed='both')
+            for v in values_in_bin:
+                bins[v] = interval
+                values_in_bin = []
+                cum_freq = 0
+
+    return series.apply(lambda x: bins.get(x))
+
+
+def calc_interval_overlap(a: pd.Interval, b: pd.Interval):
+    """Computes the overlap ratio of a on b."""
+    if b.left == b.right:
+        return 1 if b.left in a else 0
+    if a.left > b.right:
+        return 0
+    if a.right < b.left:
+        return 0
+
+    if type(a.left) == str:
+        return 0.3
+
+    return min(1, (a.right - a.left) / (b.right - b.left))

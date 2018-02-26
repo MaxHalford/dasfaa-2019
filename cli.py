@@ -1,15 +1,18 @@
+import fileinput
 import ftplib
 import glob
 import os
+import platform
 
 import click
+import pandas as pd
 import sqlalchemy
 
 from phd import tools
 
 
 # Default database URI if none is provided through CLI arguments
-URI = 'postgresql://postgres:admin@localhost:5432/imdb'
+URI = 'postgresql://postgres:admin@localhost:5432/tpcds'
 
 
 @click.group()
@@ -46,20 +49,60 @@ def dlimdb():
 
 
 @cli.command()
+@click.argument('sql')
 @click.argument('uri', default=URI)
-def buildstats(uri):
+def runsql(sql, uri):
 
     # Connect to the database
     engine = sqlalchemy.create_engine(uri)
     conn = engine.connect()
 
-    # Build statistics
-    conn.execute('ANALYZE')
+    # Read the SQL query is the argument is a file path
+    if os.path.exists(sql):
+        with open(sql, 'r') as query:
+            conn.execute(sqlalchemy.text(query.read()).execution_options(autocommit=True))
+    # If not execute the given argument
+    else:
+        conn.execute(sqlalchemy.text(sql).execution_options(autocommit=True))
 
 
 @cli.command()
+@click.argument('directory')
+def cleantpcds(directory):
+
+    for i, f in enumerate(glob.glob(os.path.join(directory, '*.dat'))):
+        print('Cleaning {}...'.format(f))
+        for line in fileinput.input(f, inplace=True):
+            print(line.replace('|\n', ''))
+
+
+@cli.command()
+@click.argument('directory')
 @click.argument('uri', default=URI)
-def runimdb(uri):
+def loadtpcds(directory, uri):
+
+    # Connect to the database
+    engine = sqlalchemy.create_engine(uri)
+    conn = engine.connect().connection
+    cursor = conn.cursor()
+
+    for f in glob.glob(os.path.join(directory, '*.dat')):
+        _, file = os.path.split(f)
+        # Extract the table name
+        table_name = file.split('.')[0]
+        print('Loading {} data...'.format(table_name))
+        # Truncate the table to make sure nothing is there
+        cursor.execute('TRUNCATE TABLE {} CASCADE;'.format(table_name))
+        # Run the copy query
+        with open(os.path.abspath(f), 'rb') as sql_file:
+            cursor.copy_from(sql_file, table_name, sep='|', null='')
+    conn.commit()
+
+
+@cli.command()
+@click.argument('queries_dir')
+@click.argument('uri', default=URI)
+def run_queries(queries_dir, uri):
 
     # Connect to the database
     engine = sqlalchemy.create_engine(uri)
@@ -67,7 +110,7 @@ def runimdb(uri):
     # Load the JOB queries
     queries = [
         open(f).read()
-        for f in glob.glob('job/*.sql')
+        for f in glob.glob('{}/*.sql'.format(queries_dir))
         if f not in ('fkindexes.sql', 'schema.sql')
     ]
 

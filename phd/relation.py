@@ -10,7 +10,7 @@ class Relation(pd.DataFrame):
 
     @property
     def _constructor(self):
-        return pd.DataFrame
+        return Relation
 
     @property
     def attributes(self):

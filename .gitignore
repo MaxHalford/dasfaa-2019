@@ -4,3 +4,6 @@ build/
 .ipynb_checkpoints
 data/*
 *.db
+*.o
+tpcds-kit/tools/*.sql
+tpcds-kit/tools/*.dat

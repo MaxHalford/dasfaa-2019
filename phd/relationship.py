@@ -7,4 +7,4 @@ class Relationship():
         self.right_on = right_on
 
     def __str__(self):
-        return f'{self.left}.{self.left_on} <-> {self.right}.{self.right_on}'
+        return '{self.left}.{self.left_on} <-> {self.right}.{self.right_on}'

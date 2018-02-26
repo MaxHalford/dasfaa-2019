@@ -1,3 +1,6 @@
 [submodule "imdbpy"]
 	path = imdbpy
 	url = https://github.com/alberanid/imdbpy
+[submodule "tpcds-kit"]
+	path = tpcds-kit
+	url = https://github.com/gregrahn/tpcds-kit
