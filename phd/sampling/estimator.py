@@ -88,4 +88,6 @@ class SamplingEstimator(Estimator):
             rel = self.relations[rel_name]
             attribute_selectivity *= len(rel.query(filters[rel_name])) / len(rel)
 
+        print(cartesian_prod_card, attribute_selectivity)
+
         return cartesian_prod_card * join_selectivity * attribute_selectivity

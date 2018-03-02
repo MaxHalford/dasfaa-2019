@@ -172,6 +172,77 @@ class BayesNet(nx.DiGraph):
             if by:
                 return operator.In(set(sub_tree.node[on]['dist'].keys()))
 
+        def propagate(node):
+
+            # Get the node's CPD
+            dist = sub_tree.node[node]['dist']
+
+            # We're at a leaf of the tree
+            if sub_tree.out_degree(node) == 0:
+                return {
+                    by_val: sum(
+                        (p * conditions[node].calc_coverage(on_val, self.n_distinct[node][str(on_val)]))
+                        if isinstance(on_val, pd.Interval) and node in conditions
+                        else p
+                        for on_val, p in d.items()
+                    )
+                    for by_val, d in dist.items()
+                }
+
+            child_dists = [propagate(child) for child in sub_tree.successors(node)]
+
+            # We're at an internal node
+            if dist.by:
+                return {
+                    by_val: sum(
+                        sum(
+                            child_dist[on_val] *
+                                (
+                                    (p * conditions[node].calc_coverage(on_val, self.n_distinct[node][str(on_val)]))
+                                    if isinstance(on_val, pd.Interval) and node in conditions
+                                    else p
+                                )
+                            for on_val, p in d.items()
+                        )
+                        for child_dist in child_dists
+                    )
+                    for by_val, d in dist.items()
+                }
+
+            # We're at the root of the tree
+            return sum(
+                sum(
+                    p * child_dist[on_val]
+                    for child_dist in child_dists
+                )
+                for on_val, p in dist.items()
+            )
+
+        subset_dist(root)
+        sel = propagate(root)
+        return sel
+
+    def infer2(self, conditions) -> float:
+
+        sub_tree = self.steiner_tree(conditions.keys())
+
+        root = sub_tree.root()
+
+        def subset_dist(on):
+
+            by = sub_tree.node[on]['dist'].by
+
+            sub_tree.node[on]['dist'] = sub_tree.node[on]['dist'].subset(on, conditions.get(on))
+            if by:
+                sub_tree.node[on]['dist'] = sub_tree.node[on]['dist'].subset(by, conditions.get(by))
+
+            child_conditions = [subset_dist(child) for child in sub_tree.successors(on)]
+            for condition in child_conditions:
+                sub_tree.node[on]['dist'] = sub_tree.node[on]['dist'].subset(on, condition)
+
+            if by:
+                return operator.In(set(sub_tree.node[on]['dist'].keys()))
+
         def propagate(node, by_val=None):
 
             # Get the node's CPD

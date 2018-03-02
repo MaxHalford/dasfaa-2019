@@ -71,6 +71,7 @@ class BayesianNetworkEstimator(Estimator):
 
         # Create a Bayesian network per relation
         self.bayes_nets = {}
+        self.mutual_infos = {}
         sampling_method = {True: 'SYSTEM', False: 'BERNOULLI'}[self.block_sampling]
         for rel_name in self.rel_names:
 
@@ -108,13 +109,13 @@ class BayesianNetworkEstimator(Estimator):
                 or 'id_' in att
                 or att == 'id'
                 or '_sk' in att
-                or self.att_types[att] == 'character varying'
+                or self.att_types[rel_name][att] == 'character varying'
                 or round(rel_card * self.null_fracs[rel_name][att] + self.att_cards[rel_name][att]) == rel_card
             ]
 
             # Find the structure of the Bayesian network
             tic = time.time()
-            bn = chow_liu.chow_liu_tree_from_df(df=rel, blacklist=blacklist)
+            bn, self.mutual_infos[rel_name] = chow_liu.chow_liu_tree_from_df(df=rel, blacklist=blacklist)
             duration['structure'][rel_name] = time.time() - tic
 
             # Compute the network's parameters

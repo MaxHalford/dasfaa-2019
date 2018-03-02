@@ -13,7 +13,7 @@ def chow_liu_tree_from_df(df: pd.DataFrame, blacklist: List[str]) -> bayes_net.B
     # Ignore columns that are part of the blacklist
     attributes = set(df.columns) - set(blacklist)
     if len(attributes) <= 1:
-        return bayes_net.BayesNet(nodes=attributes)
+        return bayes_net.BayesNet(nodes=attributes), {}
 
     # Calculate the pairwise mutual informations scores
     mut_infos = [
