@@ -4,3 +4,6 @@
 [submodule "tpcds-kit"]
 	path = tpcds-kit
 	url = https://github.com/gregrahn/tpcds-kit
+[submodule "join-order-benchmark"]
+	path = join-order-benchmark
+	url = https://github.com/gregrahn/join-order-benchmark
