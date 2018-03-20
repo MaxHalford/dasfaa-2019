@@ -4,13 +4,12 @@ import time
 import pandas as pd
 import sqlalchemy
 
+from phd import distribution
 from phd import tools
 from phd.estimator import Estimator
 
-from . import chow_liu
 
-
-class BayesianNetworkEstimator(Estimator):
+class TextbookEstimator(Estimator):
 
     def __init__(self, n_mcv=30, n_bins=30, sampling_ratio=1.0, block_sampling=True,
                  min_rows=10000, seed=None):
@@ -31,15 +30,18 @@ class BayesianNetworkEstimator(Estimator):
         # Record the time spent
         duration = {
             'querying': {},
-            'structure': {},
             'parameters': {}
         }
 
-        # Create a Bayesian network per relation
-        self.bayes_nets = {}
-        self.mutual_infos = {}
+        # Create histograms per attribute
+        self.histograms = {}
+        self.n_in_bin = {}
         sampling_method = {True: 'SYSTEM', False: 'BERNOULLI'}[self.block_sampling]
+
         for rel_name in self.rel_names:
+
+            self.histograms[rel_name] = {}
+            self.n_in_bin[rel_name] = {}
 
             rel_card = self.rel_cards[rel_name]
 
@@ -71,34 +73,26 @@ class BayesianNetworkEstimator(Estimator):
             # Blacklist the ID columns
             blacklist = [
                 att for att in rel.columns
-                if '_id' in att or
-                'id_' in att or
-                att == 'id' or
-                '_sk' in att or
-                self.att_types[rel_name][att] == 'character varying' or
-                round(rel_card * self.null_fracs[rel_name][att] + self.att_cards[rel_name][att]) == rel_card
+                if '_id' in att
+                or 'id_' in att
+                or att == 'id'
+                or '_sk' in att
+                or self.att_types[rel_name][att] == 'character varying'
+                or round(rel_card * self.null_fracs[rel_name][att] + self.att_cards[rel_name][att]) == rel_card
             ]
 
-            # Find the structure of the Bayesian network
+            # Create one histogram per attribute
             tic = time.time()
-            bn, self.mutual_infos[rel_name] = chow_liu.chow_liu_tree_from_df(
-                df=rel,
-                blacklist=blacklist
-            )
-            duration['structure'][rel_name] = time.time() - tic
+            for att in set(rel.columns) - set(blacklist):
+                rel[att], self.n_in_bin[rel_name][att] = tools.discretize_series(
+                    rel[att],
+                    n_mcv=self.n_mcv,
+                    n_bins=self.n_bins
+                )
+                self.histograms[rel_name][att] = distribution.Distribution(on=att, by=None)
+                self.histograms[rel_name][att].build_from_df(rel, types=self.att_types[rel_name])
 
-            # Compute the network's parameters
-            tic = time.time()
-            bn.update_distributions(
-                rel,
-                n_mcv=self.n_mcv,
-                n_bins=self.n_bins,
-                types=self.att_types[rel_name]
-            )
             duration['parameters'][rel_name] = time.time() - tic
-
-            # Store the network
-            self.bayes_nets[rel_name] = bn
 
         # Close the connection to the database
         conn.close()
@@ -113,10 +107,19 @@ class BayesianNetworkEstimator(Estimator):
         join_selectivity = self.calc_join_selectivity(relationships)
 
         attribute_selectivity = 1
-        for rel_name in filters:
-            bn = self.bayes_nets[rel_name]
-            p = bn.infer(tools.parse_filter(filters[rel_name]))
-            print(rel_name, p)
-            attribute_selectivity *= p
+        for rel_name, f in filters.items():
+            rel_p = 1
+            for att, op in tools.parse_filter(f).items():
+                hist = self.histograms[rel_name][att]
+                relevant_hist = hist.subset(att, op)
+                pp = 0
+                for val, p in relevant_hist.items():
+                    if isinstance(val, pd.Interval):
+                        n_in_bin = self.n_in_bin[rel_name][att][str(val)]
+                        p *= op.calc_coverage(val, n_in_bin)
+                    pp += p
+                rel_p *= pp
+            print(rel_name, rel_p)
+            attribute_selectivity *= rel_p
 
         return cartesian_prod_card * join_selectivity * attribute_selectivity

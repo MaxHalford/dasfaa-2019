@@ -50,7 +50,11 @@ class Equal(Operator):
     def keep_relevant(self, values):
         if self.operand in values:
             return set(v for v in values if v == self.operand)
-        return set(v for v in values if v and self.operand in v)
+        return set(
+            v
+            for v in values
+            if isinstance(v, pd.Interval) and self.operand in v
+        )
 
     def __str__(self) -> str:
         return 'x == {}'.format(self.operand)
@@ -62,13 +66,18 @@ class In(Operator):
         self.iterable = iterable
 
     def calc_coverage(self, interval: pd.Interval, n_values: int):
-        for i in self.iterable:
-            if Equal(i).calc_coverage(interval, 1) > 0:
-                return 1
-        return 0
+        return sum(Equal(i).calc_coverage(interval, n_values) for i in self.iterable)
 
     def keep_relevant(self, values):
-        return set(val for val in values if val in self.iterable)
+
+        if any(v in self.iterable for v in values):
+            return set(v for v in values if v in self.iterable)
+        return set(
+            v
+            for v in values
+            if isinstance(v, pd.Interval)
+            and self.calc_coverage(v, 2) > 0
+        )
 
     def __str__(self) -> str:
-        return 'x in {}'.format(self.operand)
+        return 'x in {}'.format(self.iterable)

@@ -2,10 +2,8 @@ import fileinput
 import ftplib
 import glob
 import os
-import platform
 
 import click
-import pandas as pd
 import sqlalchemy
 
 from phd import tools

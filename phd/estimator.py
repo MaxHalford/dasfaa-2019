@@ -97,12 +97,18 @@ class Estimator():
         ))
 
     def parse_filter_query(self, filter_query: str):
+
+        filter_query = ' '.join(filter_query.replace('\n', '').split())
+
+        if len(filter_query) == 0:
+            return {}
+
         return dict(
             (k, ' and '.join([re.sub('\w+\.', '', v[1]) for v in g]))
             for k, g in itertools.groupby(
                 [
                     (re.split(' (==|in) ', part)[0].split('.')[0], part)
-                    for part in ' '.join(filter_query.replace('\n', '').split()).split(' and ')
+                    for part in filter_query.split(' and ')
                 ],
                 lambda x: x[0]
             )
@@ -115,5 +121,5 @@ class Estimator():
         relation_names = relation_names.union(set(filters.keys()))
         return relationships, filters, relation_names
 
-    def estimate_selectivity(self, join_query: str, filter_query: str):
+    def estimate_selectivity(self, join_query: str, filter_query: str, relation_names=None):
         raise NotImplementedError

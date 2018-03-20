@@ -1,12 +1,26 @@
 import itertools
-import numbers
-from typing import Callable
 
-import numpy as np
 import pandas as pd
 
 from phd import operator
-from phd import tools
+
+
+def parse_interval(s, is_numeric):
+    parse_val = lambda x: float(x) if is_numeric else x
+
+    if '%,%' in s:
+        left, right = s[1:-1].split(' %,% ')
+
+        if s.startswith('['):
+            if s.endswith(']'):
+                return pd.Interval(parse_val(left), parse_val(right), 'both')
+            return pd.Interval(parse_val(left), parse_val(right), 'left')
+        if s.endswith(']'):
+            return pd.Interval(parse_val(left), parse_val(right), 'right')
+        return pd.Interval(parse_val(left), parse_val(right), 'neither')
+
+    # Not an interval
+    return parse_val(s) if s != 'None' else s
 
 
 class Distribution(dict):
@@ -18,10 +32,10 @@ class Distribution(dict):
         self.on = on
         self.by = by
 
-    def from_df(self, df: pd.DataFrame, types: dict):
+    def build_from_df(self, df: pd.DataFrame, types: dict):
 
         if self.by:
-            calc_inner_dist = lambda g: Distribution(on=self.on).from_df(g, types)
+            calc_inner_dist = lambda g: Distribution(on=self.on).build_from_df(g, types)
             counts = df.groupby(self.by, sort=False).apply(calc_inner_dist)
         else:
             counts = df.groupby(self.on, sort=False).size() / len(df)
@@ -31,23 +45,9 @@ class Distribution(dict):
             counts = counts.stack()
 
         # I hate this shit
-
         on = self.by if self.by else self.on
-
-        if types[on] in ('integer', 'numeric', 'double precision', 'real'):
-            def convert(x):
-                if x.startswith("["):
-                    left, right = x[1:-1].split(' %,% ')
-                    return pd.Interval(float(left), float(right), 'both')
-                return float(x) if x != 'None' else x
-        else:
-            def convert(x):
-                if x.startswith("["):
-                    left, right = x[1:-1].split(' %,% ')
-                    return pd.Interval(left, right, 'both')
-                return x
-
-        super().__init__({convert(k): v for k, v in counts.items()})
+        is_numeric = types[on] in ('bigint', 'integer', 'numeric', 'double precision', 'real')
+        super().__init__({parse_interval(k, is_numeric): v for k, v in counts.items()})
 
         return self
 
@@ -66,7 +66,7 @@ class Distribution(dict):
             )
 
         # Inner keys
-        relevant = op.keep_relevant(itertools.chain(*self.values()))
+        relevant = op.keep_relevant(set(itertools.chain(*self.values())))
         clean = lambda x: {k: v for k, v in x.items() if v}
         return Distribution(
             clean({
@@ -83,3 +83,7 @@ class Distribution(dict):
     @property
     def _constructor(self):
         return Distribution
+
+    def to_df(self) -> pd.DataFrame:
+        """Returns the DataFrame representation of the CPD."""
+        return pd.DataFrame.from_dict(self, orient='index')

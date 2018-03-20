@@ -11,7 +11,3 @@ class Relation(pd.DataFrame):
     @property
     def _constructor(self):
         return Relation
-
-    @property
-    def attributes(self):
-        return self.columns.tolist()

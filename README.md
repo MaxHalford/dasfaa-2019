@@ -47,6 +47,9 @@ python cli.py run_queries URI job/queries
 
 `URI` has to be a valid database string, such as `postgresql://user:password@localhost:5432/imdb`.
 
+13, 41, 18, 26, 27, 28, 34, 48, 49, 53, 54, 63, 64, 7, 85, 89, 91
+
+
 ## Papers
 
 - [Duke database course](https://www.cs.duke.edu/courses/compsci516/)

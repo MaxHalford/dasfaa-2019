@@ -1,16 +1,9 @@
-from collections import defaultdict
-import itertools
 import random
-import re
 import time
-from typing import List
 
 import pandas as pd
 import sqlalchemy
 
-from phd import relation
-from phd import relationship
-from phd import tools
 from phd.estimator import Estimator
 
 
@@ -51,7 +44,7 @@ class SamplingEstimator(Estimator):
                 # Make sure there won't be less samples then the minimum number of allowed rows
                 query += ' TABLESAMPLE {} ({}) REPEATABLE ({})'.format(
                     sampling_method,
-                    sampling_ratio,
+                    sampling_ratio * 100,
                     self.seed
                 )
             date_atts = [att for att, typ in self.att_types[rel_name].items() if typ == 'date']
@@ -76,18 +69,18 @@ class SamplingEstimator(Estimator):
 
         return duration
 
-    def estimate_selectivity(self, join_query: str, filter_query: str):
+    def estimate_selectivity(self, join_query: str, filter_query: str, relation_names=None):
 
         relationships, filters, rel_names = self.parse_query(join_query, filter_query)
 
-        cartesian_prod_card = self.calc_cartesian_prod_card(rel_names)
+        cartesian_prod_card = self.calc_cartesian_prod_card(relation_names if relation_names else rel_names)
         join_selectivity = self.calc_join_selectivity(relationships)
 
         attribute_selectivity = 1
-        for rel_name in filters:
+        for rel_name, f in filters.items():
             rel = self.relations[rel_name]
-            attribute_selectivity *= len(rel.query(filters[rel_name])) / len(rel)
-
-        print(cartesian_prod_card, attribute_selectivity)
+            p = len(rel.query(f)) / len(rel)
+            print(rel_name, p)
+            attribute_selectivity *= p
 
         return cartesian_prod_card * join_selectivity * attribute_selectivity
