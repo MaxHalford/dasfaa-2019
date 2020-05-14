@@ -1,3 +1,7 @@
+# An Approach Based on Bayesian Networks for Query Selectivity Estimation
+
+This contains the code used for the DASFAA 2019 paper entitled "*[An Approach Based on Bayesian Networks for Query Selectivity Estimation](https://link.springer.com/chapter/10.1007/978-3-030-18579-4_1)*". Disclaimer: the code is a bit more messy than what I'm used to producing. I've also been working on an improved version of this code since writing this paper, but it hasn't been published yet.
+
 ## Setup
 
 1. [Install PostgreSQL](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads#windows) (remember the credentials you choose!)
@@ -48,11 +52,3 @@ python cli.py run_queries URI job/queries
 `URI` has to be a valid database string, such as `postgresql://user:password@localhost:5432/imdb`.
 
 13, 41, 18, 26, 27, 28, 34, 48, 49, 53, 54, 63, 64, 7, 85, 89, 91
-
-
-## Papers
-
-- [Duke database course](https://www.cs.duke.edu/courses/compsci516/)
-- [Is query optimization a "solved" problem?](http://wp.sigmod.org/?p=1075)
-- [Access Path Selection in a Relational Database Management System](https://www.cs.duke.edu/courses/compsci516/cps216/spring03/papers/selinger-etal-1979.pdf)
-- [The Red Book](http://www.redbook.io/) (specifically the [chapter on query optimization](http://www.redbook.io/ch7-queryoptimization.html))
